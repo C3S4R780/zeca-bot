@@ -3,11 +3,10 @@ from datetime import datetime, timedelta, date
 def generate_status(hoje):
 
     # Get next wednesday
-    next_zeca_feira = date.today() + timedelta((2 - hoje.weekday()) % 7)
+    p_hoje = datetime.strptime(hoje.strftime("%Y-%m-%d %H:%M"), "%Y-%m-%d %H:%M")
+    next_zeca_feira = datetime.strftime(p_hoje + timedelta((2 - hoje.weekday()) % 7), "%Y-%m-%d")
 
-    d1 = datetime.strptime(
-        f"{hoje.year}-{hoje.month}-{hoje.day} {hoje.hour}:{hoje.minute}",
-        "%Y-%m-%d %H:%M")
+    d1 = datetime.strptime(f"{p_hoje}", "%Y-%m-%d %H:%M:%S")
     d2 = datetime.strptime(f"{next_zeca_feira} 08:00", "%Y-%m-%d %H:%M")
 
     # Time difference between today and next wednesday
