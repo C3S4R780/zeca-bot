@@ -1,36 +1,60 @@
+# Imports
 import os
 import discord
-from discord.ext import commands
+import pytz
+from discord.ext import commands, tasks
 from datetime import datetime
-from time import time, sleep
-from apiKeys import BOTTOKEN
+from keep_alive import keep_alive
+from utils import generate_status
 
 # Global variables
-# intents = discord.Intents.default()  # Setup bot intents
-# intents.message_content = True
-# client = commands.Bot(command_prefix="/", intents=intents)
-client = commands.Bot(command_prefix="/")  # Create bot client
-ONE_HOUR = 60 * 60  # seconds
-ONE_DAY = 24 * ONE_HOUR  # seconds
+intents = discord.Intents.default()
+intents.message_content = True
+client = commands.Bot(command_prefix="/", intents=intents)
+sent = False
 
+# Loop function every 30 seconds
+@tasks.loop(seconds=30, reconnect=True)
+async def zeca_timer():
+    global sent
 
-async def send_zeca():
-    channel = client.get_channel(997879947874021428)
-    await channel.send(file=discord.File('zeca.png'))
+    # Data e hora atual, com UTC correto (-3)
+    hoje = datetime.now(pytz.timezone('America/Sao_Paulo'))
+    status = generate_status(hoje)
+
+    if hoje.weekday() == 2:  # 2 = Zeca-feira (Quarta-feira)
+        if hoje.hour == 8 and not sent:
+            channels = [997879947874021428, 821937691167162382]
+            for channel_id in channels:
+                channel = client.get_channel(channel_id)
+                msg = await channel.send("@everyone",
+                                         file=discord.File('zeca.png'))
+                await msg.add_reaction("<:zeca:1069693872713781268>")
+            sent = True
+        if hoje.hour >= 8 and sent:
+            status = "Feliz zeca-feira!"
+    else:
+        sent = False
+
+    # Change bot status
+    await client.change_presence(activity=discord.Game(name=status))
 
 
 # --- Events ---
 @client.event
 async def on_ready():
-    horario_atual = time()
-    while horario_atual <= horario_atual + ONE_DAY:
-        hoje = datetime.today()
-        if hoje.weekday() == 2:  # Zeca-feira (Quarta-feira)
-            if hoje.hour == 18:
-                await send_zeca()
-                sleep(ONE_DAY)
-            else:
-                sleep(5 * 60)  #  minutos
 
+    # Start loop
+    zeca_timer.start()
 
-client.run(BOTTOKEN)
+# Cheesing replit timeout time
+keep_alive()
+
+# Handle discord rate limiting the bot
+try:
+    client.run(os.environ['BOTTOKEN'])
+except discord.errors.HTTPException as e:
+    if e.status == 429:
+        print("RATE LIMITED - RESTARTING...")
+        os.system("python restarter.py")
+        os.system('kill 1')
