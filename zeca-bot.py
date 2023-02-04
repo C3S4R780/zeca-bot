@@ -2,6 +2,7 @@
 import os
 import discord
 import pytz
+import json
 from discord.ext import commands, tasks
 from datetime import datetime
 from keep_alive import keep_alive
@@ -10,8 +11,8 @@ from utils import generate_status
 # Global variables
 intents = discord.Intents.default()
 intents.message_content = True
-client = commands.Bot(command_prefix="/", intents=intents)
-sent = False
+client = commands.Bot(command_prefix="/", intents=intents, activity=discord.Game("Falta ..."))
+sent = json.load(open("zeca_sent.json"))
 
 # Loop function every 30 seconds
 @tasks.loop(seconds=30, reconnect=True)
@@ -23,18 +24,24 @@ async def zeca_timer():
     status = generate_status(hoje)
 
     if hoje.weekday() == 2:  # 2 = Zeca-feira (Quarta-feira)
-        if hoje.hour == 8 and not sent:
+        if hoje.hour == 8 and not sent['sent']:
             channels = [997879947874021428, 821937691167162382]
+
             for channel_id in channels:
                 channel = client.get_channel(channel_id)
-                msg = await channel.send("@everyone",
-                                         file=discord.File('zeca.png'))
+                msg = await channel.send("@everyone", file=discord.File('zeca.png'))
                 await msg.add_reaction("<:zeca:1069693872713781268>")
-            sent = True
-        if hoje.hour >= 8 and sent:
+
+            sent['sent'] = True
+
+        if hoje.hour >= 8 and sent['sent']:
             status = "Feliz zeca-feira!"
+
     else:
-        sent = False
+        sent['sent'] = False
+
+    with open("zeca_sent.json", "w") as zeca_sent:
+        json.dump(sent, zeca_sent)
 
     # Change bot status
     await client.change_presence(activity=discord.Game(name=status))
