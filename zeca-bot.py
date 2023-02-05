@@ -6,7 +6,7 @@ import json
 from discord.ext import commands, tasks
 from datetime import datetime
 from keep_alive import keep_alive
-from utils import generate_status
+from generate_status import generate_status
 
 # Global variables
 intents = discord.Intents.default()
